@@ -24,6 +24,7 @@ const quitBtn = document.getElementById('quit-btn');
 
 const modeInput = document.getElementById('game-mode');
 const themeInput = document.getElementById('theme-mode');
+const weaponDisplayInput = document.getElementById('weapon-display');
 const rangeInput = document.getElementById('target-range');
 const targetGoalInput = document.getElementById('target-goal');
 const targetColorInput = document.getElementById('target-color');
@@ -143,36 +144,278 @@ scene.add(camera);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 document.body.appendChild(renderer.domElement);
 
 const gridHelper = new THREE.GridHelper(50, 50, 0x444444, 0x222222);
 gridHelper.position.y = -2;
 scene.add(gridHelper);
 
+const ambientLight = new THREE.HemisphereLight(0xffffff, 0x101820, 0.55);
+scene.add(ambientLight);
+
+const weaponLight = new THREE.PointLight(0xffffff, 0.8, 3);
+weaponLight.position.set(0.2, 0.35, -0.35);
+camera.add(weaponLight);
+
 // 銃
 const gunGroup = new THREE.Group();
-const gunMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
-const barrelMesh = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.14, 0.7), gunMat);
-const gripMesh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.3, 0.12), gunMat);
-gripMesh.position.set(0, -0.15, 0.15);
-gripMesh.rotation.x = -Math.PI / 6;
-gunGroup.add(barrelMesh, gripMesh);
+const gunFrameMat = new THREE.MeshStandardMaterial({ color: 0x171a1f, roughness: 0.72, metalness: 0.35 });
+const gunSlideMat = new THREE.MeshStandardMaterial({ color: 0x2c323a, roughness: 0.42, metalness: 0.72 });
+const gripMat = new THREE.MeshStandardMaterial({ color: 0x0d0f12, roughness: 0.88, metalness: 0.12 });
+const darkMetalMat = new THREE.MeshStandardMaterial({ color: 0x070809, roughness: 0.55, metalness: 0.75 });
+const brassMat = new THREE.MeshStandardMaterial({ color: 0xc69539, roughness: 0.38, metalness: 0.85 });
+const flashOuterMat = new THREE.MeshBasicMaterial({ color: 0xff8a18, transparent: true, opacity: 0, side: THREE.DoubleSide });
+const flashInnerMat = new THREE.MeshBasicMaterial({ color: 0xfff4b8, transparent: true, opacity: 0, side: THREE.DoubleSide });
+
+function boxMesh(width, height, depth, material, position, rotation = null) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), material);
+  mesh.position.copy(position);
+  if (rotation) mesh.rotation.set(rotation.x, rotation.y, rotation.z);
+  return mesh;
+}
+
+const frameMesh = boxMesh(0.2, 0.12, 0.56, gunFrameMat, new THREE.Vector3(0, -0.01, 0.02));
+const slideMesh = boxMesh(0.22, 0.1, 0.62, gunSlideMat, new THREE.Vector3(0, 0.08, -0.04));
+const slideCutMesh = boxMesh(0.11, 0.012, 0.11, darkMetalMat, new THREE.Vector3(0.112, 0.105, -0.06));
+const barrelMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.38, 18), darkMetalMat);
+barrelMesh.rotation.x = Math.PI / 2;
+barrelMesh.position.set(0, 0.08, -0.39);
+const muzzleRing = new THREE.Mesh(new THREE.TorusGeometry(0.043, 0.007, 10, 22), darkMetalMat);
+muzzleRing.position.set(0, 0.08, -0.59);
+const gripMesh = boxMesh(0.13, 0.34, 0.16, gripMat, new THREE.Vector3(0, -0.22, 0.17), new THREE.Vector3(-0.43, 0, 0));
+const magazineBase = boxMesh(0.15, 0.035, 0.2, darkMetalMat, new THREE.Vector3(0, -0.38, 0.23), new THREE.Vector3(-0.43, 0, 0));
+const triggerGuard = new THREE.Group();
+triggerGuard.add(
+  boxMesh(0.02, 0.095, 0.018, darkMetalMat, new THREE.Vector3(-0.055, -0.12, -0.01)),
+  boxMesh(0.02, 0.095, 0.018, darkMetalMat, new THREE.Vector3(0.055, -0.12, -0.01)),
+  boxMesh(0.13, 0.018, 0.018, darkMetalMat, new THREE.Vector3(0, -0.17, -0.01))
+);
+const triggerMesh = boxMesh(0.028, 0.085, 0.018, darkMetalMat, new THREE.Vector3(0.025, -0.13, 0.01), new THREE.Vector3(0, 0, -0.22));
+const rearSight = boxMesh(0.15, 0.028, 0.045, darkMetalMat, new THREE.Vector3(0, 0.145, 0.19));
+const frontSight = boxMesh(0.055, 0.032, 0.028, darkMetalMat, new THREE.Vector3(0, 0.15, -0.51));
+gunGroup.add(frameMesh, slideMesh, slideCutMesh, barrelMesh, muzzleRing, gripMesh, magazineBase, triggerGuard, triggerMesh, rearSight, frontSight);
 gunGroup.position.set(0.35, -0.28, -0.5);
 camera.add(gunGroup);
 
+const simpleGunGroup = new THREE.Group();
+const simpleGunMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
+const simpleBarrelMesh = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.14, 0.7), simpleGunMat);
+const simpleGripMesh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.3, 0.12), simpleGunMat);
+simpleGripMesh.position.set(0, -0.15, 0.15);
+simpleGripMesh.rotation.x = -Math.PI / 6;
+simpleGunGroup.add(simpleBarrelMesh, simpleGripMesh);
+simpleGunGroup.position.set(0.35, -0.28, -0.5);
+simpleGunGroup.visible = false;
+camera.add(simpleGunGroup);
+
 const muzzleFlash = new THREE.PointLight(0xfff0a0, 0, 3.5);
-muzzleFlash.position.set(0, 0.02, -0.45);
+muzzleFlash.position.set(0, 0.08, -0.62);
 gunGroup.add(muzzleFlash);
 
+const simpleMuzzleFlash = new THREE.PointLight(0xfff0a0, 0, 3.5);
+simpleMuzzleFlash.position.set(0, 0.02, -0.45);
+simpleGunGroup.add(simpleMuzzleFlash);
+
+const muzzleFlareGroup = new THREE.Group();
+const outerFlash = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.42, 7, 1, true), flashOuterMat);
+outerFlash.rotation.x = -Math.PI / 2;
+outerFlash.position.z = -0.17;
+const innerFlash = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.3, 7, 1, true), flashInnerMat);
+innerFlash.rotation.x = -Math.PI / 2;
+innerFlash.position.z = -0.12;
+muzzleFlareGroup.position.set(0, 0.08, -0.62);
+muzzleFlareGroup.visible = false;
+muzzleFlareGroup.add(outerFlash, innerFlash);
+gunGroup.add(muzzleFlareGroup);
+
 const defaultGunPos = new THREE.Vector3(0.35, -0.28, -0.5);
+const defaultGunRot = new THREE.Euler(-0.03, -0.04, 0.02);
+gunGroup.rotation.copy(defaultGunRot);
+const defaultSlideZ = slideMesh.position.z;
+
+function getWeaponDisplayMode() {
+  const mode = weaponDisplayInput?.value;
+  return ['realistic', 'simple', 'none'].includes(mode) ? mode : 'realistic';
+}
+
+function updateWeaponDisplay() {
+  const mode = getWeaponDisplayMode();
+  gunGroup.visible = mode === 'realistic';
+  simpleGunGroup.visible = mode === 'simple';
+  weaponLight.visible = mode === 'realistic';
+  if (mode !== 'realistic') {
+    muzzleFlareGroup.visible = false;
+    clearWeaponEffects();
+  }
+  if (mode === 'none') {
+    muzzleFlashLife = 0;
+    muzzleFlash.intensity = 0;
+    simpleMuzzleFlash.intensity = 0;
+  }
+}
+
 let gunRecoilZ = 0;
+let gunRecoilY = 0;
+let gunRecoilPitch = 0;
+let gunRecoilYaw = 0;
+let gunRecoilRoll = 0;
+let slideOffset = 0;
 let muzzleFlashLife = 0;
 let screenShake = 0;
+let autoFireFeedbackCooldown = 0;
+let casings = [];
+let smokePuffs = [];
+let shotTrails = [];
+const casingGeometry = new THREE.CylinderGeometry(0.018, 0.018, 0.07, 10);
+const smokeGeometry = new THREE.SphereGeometry(0.045, 10, 10);
 
 function triggerShotFeedback(intensity = 1) {
-  gunRecoilZ = Math.max(gunRecoilZ, 0.08 * intensity);
+  const weaponMode = getWeaponDisplayMode();
+
+  if (weaponMode === 'none') {
+    screenShake = Math.max(screenShake, 0.004 * intensity);
+    return;
+  }
+
+  if (weaponMode === 'simple') {
+    gunRecoilZ = Math.max(gunRecoilZ, 0.08 * intensity);
+    muzzleFlashLife = Math.max(muzzleFlashLife, 1);
+    screenShake = Math.max(screenShake, 0.014 * intensity);
+    return;
+  }
+
+  playGunshotSound(intensity);
+  gunRecoilZ = Math.max(gunRecoilZ, 0.075 * intensity);
+  gunRecoilY = Math.max(gunRecoilY, 0.018 * intensity);
+  gunRecoilPitch = Math.max(gunRecoilPitch, 0.09 * intensity);
+  gunRecoilYaw += (Math.random() - 0.5) * 0.025 * intensity;
+  gunRecoilRoll += (Math.random() - 0.5) * 0.03 * intensity;
+  slideOffset = Math.max(slideOffset, 0.095 * intensity);
   muzzleFlashLife = Math.max(muzzleFlashLife, 1);
   screenShake = Math.max(screenShake, 0.018 * intensity);
+  muzzleFlareGroup.rotation.z = Math.random() * Math.PI * 2;
+  spawnCasing(intensity);
+  spawnMuzzleSmoke(intensity);
+  createShotTrail(intensity);
+}
+
+function dampToZero(value, strength, deltaMs) {
+  return value * Math.exp(-strength * deltaMs / 1000);
+}
+
+function localToWorldFromGun(position) {
+  gunGroup.updateMatrixWorld(true);
+  return gunGroup.localToWorld(position.clone());
+}
+
+function vectorFromCameraLocal(x, y, z, scale = 1) {
+  return new THREE.Vector3(x, y, z).applyQuaternion(camera.quaternion).multiplyScalar(scale);
+}
+
+function spawnCasing(intensity) {
+  const casing = new THREE.Mesh(casingGeometry, brassMat);
+  casing.position.copy(localToWorldFromGun(new THREE.Vector3(0.14, 0.1, -0.06)));
+  casing.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+  const velocity = vectorFromCameraLocal(
+    0.04 + Math.random() * 0.035,
+    0.028 + Math.random() * 0.035,
+    0.015 + Math.random() * 0.02,
+    intensity
+  );
+  scene.add(casing);
+  casings.push({
+    mesh: casing,
+    velocity,
+    spin: new THREE.Vector3(Math.random() * 0.3, Math.random() * 0.35, Math.random() * 0.25),
+    life: 1
+  });
+}
+
+function spawnMuzzleSmoke(intensity) {
+  const material = new THREE.MeshBasicMaterial({ color: 0xb8bdc1, transparent: true, opacity: 0.28, depthWrite: false });
+  const puff = new THREE.Mesh(smokeGeometry, material);
+  puff.position.copy(localToWorldFromGun(new THREE.Vector3(0, 0.08, -0.7)));
+  const velocity = vectorFromCameraLocal(
+    (Math.random() - 0.5) * 0.008,
+    0.006 + Math.random() * 0.01,
+    -0.018 - Math.random() * 0.012,
+    intensity
+  );
+  scene.add(puff);
+  smokePuffs.push({ mesh: puff, velocity, life: 1, maxScale: 1.6 + Math.random() * 1.1 });
+}
+
+function createShotTrail(intensity) {
+  const start = localToWorldFromGun(new THREE.Vector3(0, 0.08, -0.66));
+  const end = start.clone().add(vectorFromCameraLocal(0, 0, -1, 10 + Math.random() * 3));
+  const geometry = new THREE.BufferGeometry().setFromPoints([start, end]);
+  const material = new THREE.LineBasicMaterial({
+    color: 0xffe2a6,
+    transparent: true,
+    opacity: Math.min(0.55, 0.32 * intensity)
+  });
+  const line = new THREE.Line(geometry, material);
+  scene.add(line);
+  shotTrails.push({ mesh: line, life: 1 });
+}
+
+function updateWeaponEffects(deltaMs) {
+  for (let i = casings.length - 1; i >= 0; i--) {
+    const casing = casings[i];
+    casing.velocity.y -= 0.00022 * deltaMs;
+    casing.mesh.position.add(casing.velocity);
+    casing.mesh.rotation.x += casing.spin.x;
+    casing.mesh.rotation.y += casing.spin.y;
+    casing.mesh.rotation.z += casing.spin.z;
+    casing.life -= deltaMs / 1100;
+    if (casing.life <= 0 || casing.mesh.position.y < -2.2) {
+      scene.remove(casing.mesh);
+      casings.splice(i, 1);
+    }
+  }
+
+  for (let i = smokePuffs.length - 1; i >= 0; i--) {
+    const puff = smokePuffs[i];
+    puff.mesh.position.add(puff.velocity);
+    puff.life -= deltaMs / 620;
+    const progress = 1 - Math.max(0, puff.life);
+    puff.mesh.scale.setScalar(0.6 + progress * puff.maxScale);
+    puff.mesh.material.opacity = Math.max(0, puff.life) * 0.24;
+    if (puff.life <= 0) {
+      scene.remove(puff.mesh);
+      puff.mesh.material.dispose();
+      smokePuffs.splice(i, 1);
+    }
+  }
+
+  for (let i = shotTrails.length - 1; i >= 0; i--) {
+    const trail = shotTrails[i];
+    trail.life -= deltaMs / 85;
+    trail.mesh.material.opacity = Math.max(0, trail.life) * 0.35;
+    if (trail.life <= 0) {
+      scene.remove(trail.mesh);
+      trail.mesh.geometry.dispose();
+      trail.mesh.material.dispose();
+      shotTrails.splice(i, 1);
+    }
+  }
+}
+
+function clearWeaponEffects() {
+  casings.forEach(casing => scene.remove(casing.mesh));
+  smokePuffs.forEach(puff => {
+    scene.remove(puff.mesh);
+    puff.mesh.material.dispose();
+  });
+  shotTrails.forEach(trail => {
+    scene.remove(trail.mesh);
+    trail.mesh.geometry.dispose();
+    trail.mesh.material.dispose();
+  });
+  casings = [];
+  smokePuffs = [];
+  shotTrails = [];
 }
 
 // --- テーマ設定 ---
@@ -225,6 +468,46 @@ function updateParticles() {
 // --- ★新機能: サウンド (Hit & Miss) ---
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
+function playGunshotSound(intensity = 1) {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const now = audioCtx.currentTime;
+
+  const noiseLength = Math.floor(audioCtx.sampleRate * 0.085);
+  const noiseBuffer = audioCtx.createBuffer(1, noiseLength, audioCtx.sampleRate);
+  const data = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < noiseLength; i++) {
+    const decay = 1 - i / noiseLength;
+    data[i] = (Math.random() * 2 - 1) * decay * decay;
+  }
+
+  const crack = audioCtx.createBufferSource();
+  const crackFilter = audioCtx.createBiquadFilter();
+  const crackGain = audioCtx.createGain();
+  crack.buffer = noiseBuffer;
+  crackFilter.type = 'bandpass';
+  crackFilter.frequency.setValueAtTime(2400, now);
+  crackFilter.Q.setValueAtTime(1.8, now);
+  crackGain.gain.setValueAtTime(0.18 * intensity, now);
+  crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.085);
+  crack.connect(crackFilter);
+  crackFilter.connect(crackGain);
+  crackGain.connect(audioCtx.destination);
+  crack.start(now);
+  crack.stop(now + 0.09);
+
+  const thump = audioCtx.createOscillator();
+  const thumpGain = audioCtx.createGain();
+  thump.type = 'triangle';
+  thump.frequency.setValueAtTime(96, now);
+  thump.frequency.exponentialRampToValueAtTime(46, now + 0.11);
+  thumpGain.gain.setValueAtTime(0.12 * intensity, now);
+  thumpGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+  thump.connect(thumpGain);
+  thumpGain.connect(audioCtx.destination);
+  thump.start(now);
+  thump.stop(now + 0.13);
+}
+
 function playHitSound() {
   if (audioCtx.state === 'suspended') audioCtx.resume();
   const osc = audioCtx.createOscillator();
@@ -266,6 +549,7 @@ function updateBestScoreDisplay() {
 function loadSettings() {
   const savedMode = localStorage.getItem('aimSettings_mode');
   const savedTheme = localStorage.getItem('aimSettings_theme');
+  const savedWeaponDisplay = localStorage.getItem('aimSettings_weaponDisplay');
   const savedRange = localStorage.getItem('aimSettings_range');
   const savedGoal = localStorage.getItem('aimSettings_goal');
   const savedTargetColor = localStorage.getItem('aimSettings_targetColor');
@@ -278,6 +562,7 @@ function loadSettings() {
 
   if (savedMode) modeInput.value = savedMode;
   if (savedTheme) { themeInput.value = savedTheme; applyTheme(savedTheme); } else applyTheme('dark');
+  if (['realistic', 'simple', 'none'].includes(savedWeaponDisplay)) weaponDisplayInput.value = savedWeaponDisplay;
   if (savedRange) rangeInput.value = savedRange;
   if (savedGoal) targetGoalInput.value = savedGoal;
   if (savedTargetColor) targetColorInput.value = savedTargetColor;
@@ -289,6 +574,7 @@ function loadSettings() {
   if (savedChColor) chColorInput.value = savedChColor;
 
   updateCrosshairDisplay();
+  updateWeaponDisplay();
   updateBestScoreDisplay();
 }
 loadSettings();
@@ -302,6 +588,10 @@ function updateStartButtonLabel() {
 }
 
 modeInput.addEventListener('change', () => { updateBestScoreDisplay(); updateStartButtonLabel(); });
+weaponDisplayInput.addEventListener('change', () => {
+  localStorage.setItem('aimSettings_weaponDisplay', weaponDisplayInput.value);
+  updateWeaponDisplay();
+});
 targetGoalInput.addEventListener('change', updateBestScoreDisplay);
 targetCountInput.addEventListener('input', (e) => targetCountVal.innerText = e.target.value + '個');
 targetSizeInput.addEventListener('input', (e) => targetSizeVal.innerText = e.target.value);
@@ -500,13 +790,16 @@ window.addEventListener('blur', () => {
 function processTrackingFire(deltaMs) {
   if (!isSmoothTrackingMode() || !isFiring || targets.length === 0) {
     if (isSmoothTrackingMode()) currentTrackingStreak = 0;
+    autoFireFeedbackCooldown = 0;
     return;
   }
 
   shots += deltaMs;
-  gunRecoilZ = Math.max(gunRecoilZ, 0.025);
-  muzzleFlashLife = Math.max(muzzleFlashLife, 0.35);
-  screenShake = Math.max(screenShake, 0.004);
+  autoFireFeedbackCooldown -= deltaMs;
+  if (autoFireFeedbackCooldown <= 0) {
+    triggerShotFeedback(0.45);
+    autoFireFeedbackCooldown = 95;
+  }
   raycaster.setFromCamera(center, camera);
   const intersects = raycaster.intersectObjects(targets);
   const hitTarget = intersects.find(hit => hit.object.userData.smoothTracking)?.object;
@@ -614,6 +907,7 @@ function startGame() {
   // 設定保存
   localStorage.setItem('aimSettings_mode', modeInput.value);
   localStorage.setItem('aimSettings_theme', themeInput.value);
+  localStorage.setItem('aimSettings_weaponDisplay', weaponDisplayInput.value);
   localStorage.setItem('aimSettings_range', rangeInput.value);
   localStorage.setItem('aimSettings_goal', targetGoalInput.value);
   localStorage.setItem('aimSettings_targetColor', targetColorInput.value);
@@ -629,6 +923,9 @@ function startGame() {
   totalReactionTime = 0; totalPausedDuration = 0;
   isFiring = false; currentTrackingStreak = 0; bestTrackingStreak = 0;
   muzzleFlashLife = 0; screenShake = 0; gunRecoilZ = 0;
+  gunRecoilY = 0; gunRecoilPitch = 0; gunRecoilYaw = 0; gunRecoilRoll = 0; slideOffset = 0;
+  autoFireFeedbackCooldown = 0;
+  updateWeaponDisplay();
   
   scoreEl.innerText = score;
   timeTakenEl.innerText = '0.0';
@@ -637,6 +934,7 @@ function startGame() {
   updateTrackingStatus();
   
   clearTargets();
+  clearWeaponEffects();
   
   menuEl.style.display = 'none';
   uiEl.style.display = 'block';
@@ -680,6 +978,7 @@ function endGame(quitEarly = false) {
 
   if (quitEarly) {
     clearTargets();
+    clearWeaponEffects();
     resultStats.style.display = 'none';
     menuEl.style.display = 'flex';
     uiEl.style.display = 'none';
@@ -720,6 +1019,7 @@ function endGame(quitEarly = false) {
   menuEl.style.display = 'flex';
   uiEl.style.display = 'none';
   clearTargets();
+  clearWeaponEffects();
   startBtn.innerText = isSmoothTrackingMode() ? 'PLAY AGAIN (TRACKING)' : (modeInput.value === 'tracking' ? 'PLAY AGAIN (MOVING)' : (isFlickMode() ? 'PLAY AGAIN (FLICK)' : 'PLAY AGAIN (GRIDSHOT)'));
 }
 
@@ -744,14 +1044,36 @@ function animate() {
   const deltaMs = Math.min(frameTime - lastFrameTime, 50);
   lastFrameTime = frameTime;
   
-  if (gunRecoilZ > 0) {
-    gunRecoilZ -= 0.01;
-    if (gunRecoilZ < 0) gunRecoilZ = 0;
-  }
-  gunGroup.position.z = defaultGunPos.z + gunRecoilZ;
+  gunRecoilZ = dampToZero(gunRecoilZ, 15, deltaMs);
+  gunRecoilY = dampToZero(gunRecoilY, 18, deltaMs);
+  gunRecoilPitch = dampToZero(gunRecoilPitch, 13, deltaMs);
+  gunRecoilYaw = dampToZero(gunRecoilYaw, 10, deltaMs);
+  gunRecoilRoll = dampToZero(gunRecoilRoll, 12, deltaMs);
+  slideOffset = dampToZero(slideOffset, 26, deltaMs);
+  const weaponMode = getWeaponDisplayMode();
+  gunGroup.position.set(defaultGunPos.x, defaultGunPos.y + gunRecoilY, defaultGunPos.z + gunRecoilZ);
+  gunGroup.rotation.set(
+    defaultGunRot.x + gunRecoilPitch,
+    defaultGunRot.y + gunRecoilYaw,
+    defaultGunRot.z + gunRecoilRoll
+  );
+  simpleGunGroup.position.set(defaultGunPos.x, defaultGunPos.y, defaultGunPos.z + gunRecoilZ);
+  slideMesh.position.z = defaultSlideZ + slideOffset;
   muzzleFlashLife = Math.max(0, muzzleFlashLife - deltaMs / 70);
-  muzzleFlash.intensity = muzzleFlashLife > 0 ? 2.7 * muzzleFlashLife : 0;
+  muzzleFlash.intensity = weaponMode === 'realistic' && muzzleFlashLife > 0 ? 2.7 * muzzleFlashLife : 0;
+  simpleMuzzleFlash.intensity = weaponMode === 'simple' && muzzleFlashLife > 0 ? 2.7 * muzzleFlashLife : 0;
+  muzzleFlareGroup.visible = weaponMode === 'realistic' && muzzleFlashLife > 0;
+  if (muzzleFlareGroup.visible) {
+    const flashScale = 0.55 + muzzleFlashLife * (0.35 + Math.random() * 0.4);
+    muzzleFlareGroup.scale.setScalar(flashScale);
+    flashOuterMat.opacity = Math.min(0.72, muzzleFlashLife * 0.54);
+    flashInnerMat.opacity = Math.min(0.95, muzzleFlashLife * 0.78);
+  } else {
+    flashOuterMat.opacity = 0;
+    flashInnerMat.opacity = 0;
+  }
   screenShake = Math.max(0, screenShake - deltaMs * 0.00055);
+  updateWeaponEffects(deltaMs);
 
   if (isPlaying && !isPaused) {
     const time = frameTime;
