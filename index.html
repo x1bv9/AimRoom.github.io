@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Aim Trainer - Enhanced</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="ui">
+    <div class="hud-grid">
+      <div class="hud-stat"><span class="hud-label">SCORE</span><strong id="score">0</strong></div>
+      <div class="hud-stat"><span class="hud-label">TIME</span><strong><span id="time-taken">0.0</span>s</strong></div>
+      <div class="hud-stat"><span class="hud-label">ACC</span><strong><span id="acc">100</span>%</strong></div>
+      <div class="hud-stat"><span class="hud-label">CLEAR</span><strong><span id="clear-count">0</span>/<span id="clear-goal">30</span></strong></div>
+    </div>
+    <div id="gauge-container"><div id="gauge-bar"></div></div>
+    <div id="tracking-status" hidden>
+      <div class="tracking-header">
+        <span>TRACKING</span>
+        <strong><span id="target-health">100</span>%</strong>
+      </div>
+      <div id="target-health-container"><div id="target-health-bar"></div></div>
+    </div>
+  </div>
+
+  <div id="countdown-overlay"></div>
+
+  <div id="pause-overlay" style="display: none;">
+    <h2>PAUSED</h2>
+    <p>Press ESC or click below to resume</p>
+    <button id="resume-btn">RESUME</button>
+    <button id="quit-btn">QUIT TO MENU</button>
+  </div>
+  
+  <div id="crosshair-container"></div>
+  
+  <div id="menu">
+    <h1>Web Aim Trainer</h1>
+    
+    <div class="settings-panel" id="settings">
+      <h3>SETTINGS</h3>
+      
+      <div class="setting-item">
+        <label for="game-mode">プレイモード:</label>
+        <select id="game-mode">
+          <option value="gridshot">Gridshot (静止)</option>
+          <option value="tracking">Moving (左右移動・単発)</option>
+          <option value="smooth-tracking">Tracking (追いエイム・連続)</option>
+          <option value="flick">Flick / Time Attack</option>
+        </select>
+      </div>
+
+      <div class="setting-item">
+        <label for="theme-mode">カラーテーマ:</label>
+        <select id="theme-mode">
+          <option value="dark">Dark Mode</option>
+          <option value="light">Light Mode</option>
+        </select>
+      </div>
+
+      <div class="setting-item">
+        <label for="target-range">出現範囲:</label>
+        <select id="target-range">
+          <option value="small">小 (狭い)</option>
+          <option value="medium" selected>中 (標準)</option>
+          <option value="large">大 (広い)</option>
+        </select>
+      </div>
+
+      <div class="setting-item">
+        <label for="target-goal">クリア目標:</label>
+        <select id="target-goal">
+          <option value="10">10 個</option>
+          <option value="30" selected>30 個</option>
+          <option value="50">50 個</option>
+          <option value="100">100 個</option>
+        </select>
+      </div>
+
+      <div class="setting-item">
+        <label for="target-color">ターゲットカラー:</label>
+        <input type="color" id="target-color" value="#00ffff">
+      </div>
+
+      <div class="setting-item">
+        <label for="val-sens">VALORANT 感度:</label>
+        <input type="number" id="val-sens" value="0.3" step="0.01" min="0.01">
+      </div>
+
+      <div class="setting-item">
+        <label for="target-count">画面上の的の数:</label>
+        <input type="range" id="target-count" value="3" min="1" max="5" step="1">
+        <span id="target-count-val" class="val-display">3個</span>
+      </div>
+
+      <div class="setting-item">
+        <label for="target-size">的のサイズ:</label>
+        <input type="range" id="target-size" value="0.5" min="0.2" max="1.2" step="0.1">
+        <span id="target-size-val" class="val-display">0.5</span>
+      </div>
+
+      <div class="setting-item">
+        <label for="val-code">VALORANT コード:</label>
+        <input type="text" id="val-code" placeholder="例: 0;P;c;5;h;0;0l;4;0o;2" style="width: 170px;">
+      </div>
+
+      <div class="setting-item">
+        <label for="ch-size">簡易サイズ (コード無時):</label>
+        <input type="range" id="ch-size" value="6" min="2" max="20" step="1">
+        <span id="ch-size-val" class="val-display">6px</span>
+      </div>
+
+      <div class="setting-item">
+        <label for="ch-color">簡易カラー (コード無時):</label>
+        <input type="color" id="ch-color" value="#00ff00">
+      </div>
+    </div>
+
+    <div id="best-score-display">Best Time: --</div>
+    <div id="result-stats" style="display: none;"></div>
+    <button id="start-btn">START TRAINING</button>
+  </div>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
