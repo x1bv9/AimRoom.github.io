@@ -269,9 +269,29 @@ let smokePuffs = [];
 let shotTrails = [];
 const casingGeometry = new THREE.CylinderGeometry(0.018, 0.018, 0.07, 10);
 const smokeGeometry = new THREE.SphereGeometry(0.045, 10, 10);
+const gunshotNoiseBuffers = [];
 
-function triggerShotFeedback(intensity = 1) {
+function buildGunshotNoiseBuffer() {
+  const noiseLength = Math.floor(audioCtx.sampleRate * 0.085);
+  const noiseBuffer = audioCtx.createBuffer(1, noiseLength, audioCtx.sampleRate);
+  const data = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < noiseLength; i++) {
+    const decay = 1 - i / noiseLength;
+    data[i] = (Math.random() * 2 - 1) * decay * decay;
+  }
+  return noiseBuffer;
+}
+
+function getGunshotNoiseBuffer() {
+  if (gunshotNoiseBuffers.length < 8) {
+    gunshotNoiseBuffers.push(buildGunshotNoiseBuffer());
+  }
+  return gunshotNoiseBuffers[Math.floor(Math.random() * gunshotNoiseBuffers.length)];
+}
+
+function triggerShotFeedback(intensity = 1, options = {}) {
   const weaponMode = getWeaponDisplayMode();
+  const includeSecondaryEffects = options.secondaryEffects !== false;
 
   if (weaponMode === 'none') {
     screenShake = Math.max(screenShake, 0.004 * intensity);
@@ -295,6 +315,7 @@ function triggerShotFeedback(intensity = 1) {
   muzzleFlashLife = Math.max(muzzleFlashLife, 1);
   screenShake = Math.max(screenShake, 0.018 * intensity);
   muzzleFlareGroup.rotation.z = Math.random() * Math.PI * 2;
+  if (!includeSecondaryEffects) return;
   spawnCasing(intensity);
   spawnMuzzleSmoke(intensity);
   createShotTrail(intensity);
@@ -434,13 +455,22 @@ themeInput.addEventListener('change', (e) => applyTheme(e.target.value));
 
 // --- ★新機能: パーティクルエフェクト ---
 let particles = [];
+const particleGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+const particleMaterials = new Map();
+
+function getParticleMaterial(colorHex) {
+  if (!particleMaterials.has(colorHex)) {
+    particleMaterials.set(colorHex, new THREE.MeshBasicMaterial({ color: colorHex }));
+  }
+  return particleMaterials.get(colorHex);
+}
+
 function createExplosion(position, colorHex) {
   const particleCount = 12;
-  const geometry = new THREE.SphereGeometry(0.08, 8, 8);
-  const material = new THREE.MeshBasicMaterial({ color: colorHex });
+  const material = getParticleMaterial(colorHex);
 
   for (let i = 0; i < particleCount; i++) {
-    const mesh = new THREE.Mesh(geometry, material);
+    const mesh = new THREE.Mesh(particleGeometry, material);
     mesh.position.copy(position);
     const velocity = new THREE.Vector3(
       (Math.random() - 0.5) * 0.15,
@@ -472,18 +502,10 @@ function playGunshotSound(intensity = 1) {
   if (audioCtx.state === 'suspended') audioCtx.resume();
   const now = audioCtx.currentTime;
 
-  const noiseLength = Math.floor(audioCtx.sampleRate * 0.085);
-  const noiseBuffer = audioCtx.createBuffer(1, noiseLength, audioCtx.sampleRate);
-  const data = noiseBuffer.getChannelData(0);
-  for (let i = 0; i < noiseLength; i++) {
-    const decay = 1 - i / noiseLength;
-    data[i] = (Math.random() * 2 - 1) * decay * decay;
-  }
-
   const crack = audioCtx.createBufferSource();
   const crackFilter = audioCtx.createBiquadFilter();
   const crackGain = audioCtx.createGain();
-  crack.buffer = noiseBuffer;
+  crack.buffer = getGunshotNoiseBuffer();
   crackFilter.type = 'bandpass';
   crackFilter.frequency.setValueAtTime(2400, now);
   crackFilter.Q.setValueAtTime(1.8, now);
@@ -546,6 +568,13 @@ function updateBestScoreDisplay() {
   bestScoreDisplay.innerText = bestTime ? `Best Time (${label}/${goal}): ${bestTime}s` : `Best Time: None`;
 }
 
+let lookSensitivity = 0;
+function updateLookSensitivity() {
+  const valSens = parseFloat(sensInput.value);
+  const normalizedSens = Number.isFinite(valSens) && valSens > 0 ? valSens : 0.3;
+  lookSensitivity = (normalizedSens * 0.07) * (Math.PI / 180);
+}
+
 function loadSettings() {
   const savedMode = localStorage.getItem('aimSettings_mode');
   const savedTheme = localStorage.getItem('aimSettings_theme');
@@ -575,6 +604,7 @@ function loadSettings() {
 
   updateCrosshairDisplay();
   updateWeaponDisplay();
+  updateLookSensitivity();
   updateBestScoreDisplay();
 }
 loadSettings();
@@ -593,6 +623,8 @@ weaponDisplayInput.addEventListener('change', () => {
   updateWeaponDisplay();
 });
 targetGoalInput.addEventListener('change', updateBestScoreDisplay);
+sensInput.addEventListener('input', updateLookSensitivity);
+sensInput.addEventListener('change', updateLookSensitivity);
 targetCountInput.addEventListener('input', (e) => targetCountVal.innerText = e.target.value + '個');
 targetSizeInput.addEventListener('input', (e) => targetSizeVal.innerText = e.target.value);
 valCodeInput.addEventListener('input', updateCrosshairDisplay);
@@ -607,9 +639,12 @@ let startTime = 0, pausedTime = 0, totalPausedDuration = 0;
 let totalReactionTime = 0, clearedTargets = 0;
 let isFiring = false, currentTrackingStreak = 0, bestTrackingStreak = 0;
 let lastFrameTime = performance.now();
+let lastTimeUiUpdate = 0;
+let lastTrackingUiUpdate = 0;
 let targetGoal = 30;
 let targets = [];
 const FLICK_TARGET_LIFETIME = 800;
+const HUD_UPDATE_INTERVAL_MS = 80;
 
 const outlineMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide });
 
@@ -647,6 +682,21 @@ function updateTrackingStatus() {
   const healthPercent = Math.round(health * 100);
   targetHealthEl.innerText = healthPercent;
   targetHealthBar.style.width = `${healthPercent}%`;
+}
+
+function updateTimeUi(frameTime) {
+  if (frameTime - lastTimeUiUpdate < HUD_UPDATE_INTERVAL_MS) return;
+  lastTimeUiUpdate = frameTime;
+  const elapsed = (frameTime - startTime - totalPausedDuration) / 1000;
+  timeTakenEl.innerText = Math.max(0, elapsed).toFixed(1);
+}
+
+function updateTrackingHud(frameTime) {
+  if (frameTime - lastTrackingUiUpdate < HUD_UPDATE_INTERVAL_MS) return;
+  lastTrackingUiUpdate = frameTime;
+  scoreEl.innerText = score;
+  updateAccuracyUi();
+  updateTrackingStatus();
 }
 
 function getSpawnBounds() {
@@ -727,14 +777,12 @@ function spawnTarget() {
 const euler = new THREE.Euler(0, 0, 0, 'YXZ');
 document.addEventListener('mousemove', (event) => {
   if (!isPlaying || isPaused || document.pointerLockElement !== document.body) return;
-  const valSens = parseFloat(sensInput.value) || 0.3;
-  const sensitivity = (valSens * 0.07) * (Math.PI / 180);
   euler.setFromQuaternion(camera.quaternion);
-  euler.y -= event.movementX * sensitivity;
-  euler.x -= event.movementY * sensitivity;
+  euler.y -= event.movementX * lookSensitivity;
+  euler.x -= event.movementY * lookSensitivity;
   euler.x = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, euler.x));
   camera.quaternion.setFromEuler(euler);
-});
+}, { passive: true });
 
 const raycaster = new THREE.Raycaster();
 const center = new THREE.Vector2(0, 0);
@@ -745,23 +793,22 @@ window.addEventListener('mousedown', (event) => {
 
   if (isSmoothTrackingMode()) {
     isFiring = true;
-    triggerShotFeedback(0.55);
+    triggerShotFeedback(0.55, { secondaryEffects: false });
     return;
   }
 
-  triggerShotFeedback(isFlickMode() ? 1.15 : 1);
   shots++;
   raycaster.setFromCamera(center, camera);
   const intersects = raycaster.intersectObjects(targets);
+  const feedbackIntensity = isFlickMode() ? 1.15 : 1;
 
   if (intersects.length > 0) {
     const hitTarget = intersects[0].object;
     hits++;
     clearedTargets++;
     score += 100;
-    playHitSound();
-    
-    createExplosion(hitTarget.position.clone(), targetColorInput.value);
+    const hitPosition = hitTarget.position.clone();
+    const hitColor = targetColorInput.value;
     
     totalReactionTime += (performance.now() - hitTarget.userData.spawnTime);
     scene.remove(hitTarget);
@@ -769,9 +816,14 @@ window.addEventListener('mousedown', (event) => {
 
     updateProgressUi();
 
-    if (clearedTargets >= targetGoal) endGame();
-    else spawnTarget();
+    const reachedGoal = clearedTargets >= targetGoal;
+    if (!reachedGoal) spawnTarget();
+    triggerShotFeedback(feedbackIntensity);
+    playHitSound();
+    createExplosion(hitPosition, hitColor);
+    if (reachedGoal) endGame();
   } else {
+    triggerShotFeedback(feedbackIntensity);
     playMissSound();
   }
   
@@ -787,7 +839,7 @@ window.addEventListener('blur', () => {
   isFiring = false;
 });
 
-function processTrackingFire(deltaMs) {
+function processTrackingFire(deltaMs, frameTime) {
   if (!isSmoothTrackingMode() || !isFiring || targets.length === 0) {
     if (isSmoothTrackingMode()) currentTrackingStreak = 0;
     autoFireFeedbackCooldown = 0;
@@ -797,7 +849,7 @@ function processTrackingFire(deltaMs) {
   shots += deltaMs;
   autoFireFeedbackCooldown -= deltaMs;
   if (autoFireFeedbackCooldown <= 0) {
-    triggerShotFeedback(0.45);
+    triggerShotFeedback(0.45, { secondaryEffects: false });
     autoFireFeedbackCooldown = 95;
   }
   raycaster.setFromCamera(center, camera);
@@ -806,7 +858,7 @@ function processTrackingFire(deltaMs) {
 
   if (!hitTarget) {
     currentTrackingStreak = 0;
-    updateAccuracyUi();
+    updateTrackingHud(frameTime);
     return;
   }
 
@@ -836,9 +888,7 @@ function processTrackingFire(deltaMs) {
     }
   }
 
-  scoreEl.innerText = score;
-  updateAccuracyUi();
-  updateTrackingStatus();
+  updateTrackingHud(frameTime);
 }
 
 function processFlickTimeouts(deltaMs) {
@@ -872,6 +922,17 @@ function processFlickTimeouts(deltaMs) {
   for (let i = 0; i < expiredCount && isPlaying; i++) spawnTarget();
 }
 
+function requestLowLatencyPointerLock() {
+  try {
+    const lockPromise = document.body.requestPointerLock({ unadjustedMovement: true });
+    if (lockPromise?.catch) {
+      lockPromise.catch(() => document.body.requestPointerLock());
+    }
+  } catch {
+    document.body.requestPointerLock();
+  }
+}
+
 // --- ★新機能: ポーズ (Pause) 処理 ---
 function togglePause() {
   if (!isPlaying) return;
@@ -887,7 +948,7 @@ function togglePause() {
     totalPausedDuration += (performance.now() - pausedTime);
     pauseOverlay.style.display = 'none';
     crosshairContainer.style.display = 'block';
-    document.body.requestPointerLock();
+    requestLowLatencyPointerLock();
   }
 }
 
@@ -940,7 +1001,7 @@ function startGame() {
   uiEl.style.display = 'block';
   crosshairContainer.style.display = 'block';
 
-  document.body.requestPointerLock();
+  requestLowLatencyPointerLock();
   if (audioCtx.state === 'suspended') audioCtx.resume();
 
   // カウントダウン演出
