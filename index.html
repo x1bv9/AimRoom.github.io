@@ -4,133 +4,230 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="google-site-verification" content="plmwMyv30xBzgXX7J8kx4cgJiKHHp-phH_kaKHK9sP8" />
-  <title>Aim Room</title>
+  
+  <!-- SEO タイトル & ディスクリプション -->
+  <title>Aim Room | 無料で遊べる3D Web FPSエイムトレーナー【VALORANT・Apex練習】</title>
+  <meta name="description" content="ブラウザで今すぐ遊べる無料の3D FPSエイムトレーナー『Aim Room』。Gridshot、Flick、Tracking（追いエイム）など豊富なモードを搭載。VALORANT（ヴァロラント）のクロスヘアコード読み込みや感度調整に対応し、FPS・TPSのエイム向上に最適です。">
+  <meta name="keywords" content="エイム練習, Aim Trainer, FPS, ブラウザゲーム, VALORANT, Apex Legends, エイム向上, Gridshot, 追いエイム, 無料">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://yourdomain.com/">
+
+  <!-- OGP (SNSシェア対策) -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Aim Room - 無料3D Web FPSエイムトレーナー">
+  <meta property="og:description" content="ブラウザですぐ遊べる3Dエイム練習ツール。VALORANTクロスヘアコード対応・Gridshot・Tracking・Flickモード搭載！">
+  <meta property="og:url" content="https://yourdomain.com/">
+  <meta property="og:site_name" content="Aim Room">
+  <!-- <meta property="og:image" content="https://yourdomain.com/ogp.png"> -->
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Aim Room - 無料3D Web FPSエイムトレーナー">
+  <meta name="twitter:description" content="ブラウザで手軽にFPSエイム練習！Gridshot・Tracking・Flick対応。VALORANTクロスヘアコード読み込み可能。">
+
+  <!-- 構造化データ (JSON-LD) : 検索エンジンにWebアプリであることを伝える -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Aim Room - Web Aim Trainer",
+    "url": "https://yourdomain.com/",
+    "applicationCategory": "GameApplication",
+    "operatingSystem": "All",
+    "genre": "FPS Aim Trainer",
+    "browserRequirements": "Requires JavaScript and WebGL",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "JPY"
+    },
+    "description": "ブラウザで遊べる無料の3D FPSエイム練習ツール。Gridshot、Tracking、FlickなどのモードとVALORANT互換のクロスヘア設定機能を搭載。"
+  }
+  </script>
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="ui">
-    <div class="hud-grid">
-      <div class="hud-stat"><span class="hud-label">SCORE</span><strong id="score">0</strong></div>
-      <div class="hud-stat"><span class="hud-label">TIME</span><strong><span id="time-taken">0.0</span>s</strong></div>
-      <div class="hud-stat"><span class="hud-label">ACC</span><strong><span id="acc">100</span>%</strong></div>
-      <div class="hud-stat"><span class="hud-label">CLEAR</span><strong><span id="clear-count">0</span>/<span id="clear-goal">30</span></strong></div>
-    </div>
-    <div id="gauge-container"><div id="gauge-bar"></div></div>
-    <div id="tracking-status" hidden>
-      <div class="tracking-header">
-        <span>TRACKING</span>
-        <strong><span id="target-health">100</span>%</strong>
+  <main>
+    <!-- HUD (ゲーム中UI) -->
+    <div id="ui">
+      <div class="hud-grid">
+        <div class="hud-stat"><span class="hud-label">SCORE</span><strong id="score">0</strong></div>
+        <div class="hud-stat"><span class="hud-label">TIME</span><strong><span id="time-taken">0.0</span>s</strong></div>
+        <div class="hud-stat"><span class="hud-label">ACC</span><strong><span id="acc">100</span>%</strong></div>
+        <div class="hud-stat"><span class="hud-label">CLEAR</span><strong><span id="clear-count">0</span>/<span id="clear-goal">30</span></strong></div>
       </div>
-      <div id="target-health-container"><div id="target-health-bar"></div></div>
+      <div id="gauge-container"><div id="gauge-bar"></div></div>
+      <div id="tracking-status" hidden>
+        <div class="tracking-header">
+          <span>TRACKING</span>
+          <strong><span id="target-health">100</span>%</strong>
+        </div>
+        <div id="target-health-container"><div id="target-health-bar"></div></div>
+      </div>
     </div>
-  </div>
 
-  <div id="countdown-overlay"></div>
+    <div id="countdown-overlay"></div>
 
-  <div id="pause-overlay" style="display: none;">
-    <h2>PAUSED</h2>
-    <p>Press ESC or click below to resume</p>
-    <button id="resume-btn">RESUME</button>
-    <button id="quit-btn">QUIT TO MENU</button>
-  </div>
-  
-  <div id="crosshair-container"></div>
-  
-  <div id="menu">
-    <h1>Web Aim Trainer</h1>
+    <div id="pause-overlay" style="display: none;">
+      <h2>PAUSED</h2>
+      <p>Press ESC or click below to resume</p>
+      <button id="resume-btn">RESUME</button>
+      <button id="quit-btn">QUIT TO MENU</button>
+    </div>
     
-    <div class="settings-panel" id="settings">
-      <h3>SETTINGS</h3>
+    <div id="crosshair-container"></div>
+    
+    <!-- メニュー & ランディングページ（SEOテキスト領域） -->
+    <div id="menu">
+      <header>
+        <h1>Aim Room - Web Aim Trainer</h1>
+        <p class="subtitle">ブラウザで今すぐ練習できる本格3D FPSエイムトレーナー</p>
+      </header>
       
-      <div class="setting-item">
-        <label for="game-mode">プレイモード:</label>
-        <select id="game-mode">
-          <option value="gridshot">Gridshot (静止)</option>
-          <option value="tracking">Moving (左右移動・単発)</option>
-          <option value="smooth-tracking">Tracking (追いエイム・連続)</option>
-          <option value="flick">Flick / Time Attack</option>
-        </select>
+      <div class="settings-panel" id="settings">
+        <h3>GAME SETTINGS</h3>
+        
+        <div class="setting-item">
+          <label for="game-mode">プレイモード:</label>
+          <select id="game-mode">
+            <option value="gridshot">Gridshot (静止)</option>
+            <option value="tracking">Moving (左右移動・単発)</option>
+            <option value="smooth-tracking">Tracking (追いエイム・連続)</option>
+            <option value="flick">Flick / Time Attack</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <label for="theme-mode">カラーテーマ:</label>
+          <select id="theme-mode">
+            <option value="dark">Dark Mode</option>
+            <option value="light">Light Mode</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <label for="weapon-display">銃の表示:</label>
+          <select id="weapon-display">
+            <option value="realistic" selected>3D Realistic</option>
+            <option value="simple">Simple</option>
+            <option value="none">なし</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <label for="target-range">出現範囲:</label>
+          <select id="target-range">
+            <option value="small">小 (狭い)</option>
+            <option value="medium" selected>中 (標準)</option>
+            <option value="large">大 (広い)</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <label for="target-goal">クリア目標:</label>
+          <select id="target-goal">
+            <option value="10">10 個</option>
+            <option value="30" selected>30 個</option>
+            <option value="50">50 個</option>
+            <option value="100">100 個</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <label for="target-color">ターゲットカラー:</label>
+          <input type="color" id="target-color" value="#00ffff">
+        </div>
+
+        <div class="setting-item">
+          <label for="val-sens">感度:</label>
+          <input type="number" id="val-sens" value="0.3" step="0.01" min="0.01">
+        </div>
+
+        <div class="setting-item">
+          <label for="target-count">画面上の的の数:</label>
+          <input type="range" id="target-count" value="3" min="1" max="5" step="1">
+          <span id="target-count-val" class="val-display">3個</span>
+        </div>
+
+        <div class="setting-item">
+          <label for="target-size">的のサイズ:</label>
+          <input type="range" id="target-size" value="0.5" min="0.2" max="1.2" step="0.1">
+          <span id="target-size-val" class="val-display">0.5</span>
+        </div>
+
+        <div class="setting-item">
+          <label for="val-code">VALORANTクロスヘアコード:</label>
+          <input type="text" id="val-code" placeholder="例: 0;P;c;5;h;0;0l;4;0o;2" style="width: 170px;">
+        </div>
+
+        <div class="setting-item">
+          <label for="ch-size">簡易サイズ (コード無時):</label>
+          <input type="range" id="ch-size" value="6" min="2" max="20" step="1">
+          <span id="ch-size-val" class="val-display">6px</span>
+        </div>
+
+        <div class="setting-item">
+          <label for="ch-color">簡易カラー (コード無時):</label>
+          <input type="color" id="ch-color" value="#00ff00">
+        </div>
       </div>
 
-      <div class="setting-item">
-        <label for="theme-mode">カラーテーマ:</label>
-        <select id="theme-mode">
-          <option value="dark">Dark Mode</option>
-          <option value="light">Light Mode</option>
-        </select>
-      </div>
+      <div id="best-score-display">Best Time: --</div>
+      <div id="result-stats" style="display: none;"></div>
+      <button id="start-btn">START TRAINING</button>
 
-      <div class="setting-item">
-        <label for="weapon-display">銃の表示:</label>
-        <select id="weapon-display">
-          <option value="realistic" selected>3D Realistic</option>
-          <option value="simple">Simple</option>
-          <option value="none">なし</option>
-        </select>
-      </div>
+      <!-- SEO用テキストコンテンツ（説明・特徴・モード紹介・FAQ） -->
+      <section class="seo-info-container">
+        <article class="seo-card">
+          <h2>Aim Roomとは？</h2>
+          <p>
+            <strong>Aim Room</strong>は、インストール不要・完全無料でブラウザ上で手軽にエイム練習ができる3D Webエイムトレーナーです。VALORANT（ヴァロラント）やApex Legends、Overwatch 2、Counter-Strike 2（CS2）といった人気FPS/TPSゲームのウォームアップやエイム精度の向上に最適です。
+          </p>
+        </article>
 
-      <div class="setting-item">
-        <label for="target-range">出現範囲:</label>
-        <select id="target-range">
-          <option value="small">小 (狭い)</option>
-          <option value="medium" selected>中 (標準)</option>
-          <option value="large">大 (広い)</option>
-        </select>
-      </div>
+        <article class="seo-card">
+          <h2>主な機能と特徴</h2>
+          <ul>
+            <li><strong>インストール不要・即プレイ:</strong> ブラウザを開くだけですぐに3D空間での練習を開始できます。</li>
+            <li><strong>VALORANTクロスヘアコード対応:</strong> 普段使っているVALORANTのクロスヘアコードを入力するだけで、ゲーム内と同じレティクルを再現できます。</li>
+            <li><strong>多様なトレーニングモード:</strong> フリックエイムや追いエイム（トラッキング）など、用途に応じた4つの練習モードを搭載。</li>
+            <li><strong>細かなカスタマイズ性:</strong> 感度調整、ターゲットのサイズ・数・範囲、カラーテーマなどを自由に設定可能です。</li>
+          </ul>
+        </article>
 
-      <div class="setting-item">
-        <label for="target-goal">クリア目標:</label>
-        <select id="target-goal">
-          <option value="10">10 個</option>
-          <option value="30" selected>30 個</option>
-          <option value="50">50 個</option>
-          <option value="100">100 個</option>
-        </select>
-      </div>
+        <article class="seo-card">
+          <h2>収録プレイモード</h2>
+          <dl>
+            <dt><strong>Gridshot (静止)</strong></dt>
+            <dd>画面内に現れる静止ターゲットを正確かつ素早くクリックする基本のエイム練習です。</dd>
+            <dt><strong>Moving (移動・単発)</strong></dt>
+            <dd>左右に移動する的を狙い撃ちし、動く敵に対する予測撃ちや初弾精度を高めます。</dd>
+            <dt><strong>Tracking (追いエイム)</strong></dt>
+            <dd>動くターゲットに照準を合わせ続ける練習で、ApexやOverwatchなどのトラッキングエイム向上に効果的です。</dd>
+            <dt><strong>Flick / Time Attack</strong></dt>
+            <dd>一定時間で消えるターゲットを瞬時に撃ち抜く、反射神経とフリックエイムに特化したモードです。</dd>
+          </dl>
+        </article>
 
-      <div class="setting-item">
-        <label for="target-color">ターゲットカラー:</label>
-        <input type="color" id="target-color" value="#00ffff">
-      </div>
+        <article class="seo-card">
+          <h2>よくある質問 (FAQ)</h2>
+          <details>
+            <summary>Q. 本当に無料で遊べますか？</summary>
+            <p>はい、すべての機能が完全無料で利用可能です。アカウント登録も必要ありません。</p>
+          </details>
+          <details>
+            <summary>Q. VALORANTの感度と合わせるにはどうすればいいですか？</summary>
+            <p>「感度」設定項目に、普段お使いのVALORANTのゲーム内感度（例: 0.35等）を直接入力してください。</p>
+          </details>
+        </article>
+      </section>
 
-      <div class="setting-item">
-        <label for="val-sens">感度:</label>
-        <input type="number" id="val-sens" value="0.3" step="0.01" min="0.01">
-      </div>
-
-      <div class="setting-item">
-        <label for="target-count">画面上の的の数:</label>
-        <input type="range" id="target-count" value="3" min="1" max="5" step="1">
-        <span id="target-count-val" class="val-display">3個</span>
-      </div>
-
-      <div class="setting-item">
-        <label for="target-size">的のサイズ:</label>
-        <input type="range" id="target-size" value="0.5" min="0.2" max="1.2" step="0.1">
-        <span id="target-size-val" class="val-display">0.5</span>
-      </div>
-
-      <div class="setting-item">
-        <label for="val-code">コード:</label>
-        <input type="text" id="val-code" placeholder="例: 0;P;c;5;h;0;0l;4;0o;2" style="width: 170px;">
-      </div>
-
-      <div class="setting-item">
-        <label for="ch-size">簡易サイズ (コード無時):</label>
-        <input type="range" id="ch-size" value="6" min="2" max="20" step="1">
-        <span id="ch-size-val" class="val-display">6px</span>
-      </div>
-
-      <div class="setting-item">
-        <label for="ch-color">簡易カラー (コード無時):</label>
-        <input type="color" id="ch-color" value="#00ff00">
-      </div>
+      <footer>
+        <p>&copy; Aim Room - Web Aim Trainer. All rights reserved.</p>
+      </footer>
     </div>
-
-    <div id="best-score-display">Best Time: --</div>
-    <div id="result-stats" style="display: none;"></div>
-    <button id="start-btn">START TRAINING</button>
-  </div>
+  </main>
 
   <script type="module" src="script.js"></script>
 </body>
