@@ -142,9 +142,9 @@ const camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerH
 camera.position.set(0, 0, 0);
 scene.add(camera);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 document.body.appendChild(renderer.domElement);
 
 const gridHelper = new THREE.GridHelper(50, 50, 0x444444, 0x222222);
@@ -777,9 +777,16 @@ function spawnTarget() {
 const euler = new THREE.Euler(0, 0, 0, 'YXZ');
 document.addEventListener('mousemove', (event) => {
   if (!isPlaying || isPaused || document.pointerLockElement !== document.body) return;
+  const events = typeof event.getCoalescedEvents === 'function' ? event.getCoalescedEvents() : [event];
+  let moveX = 0;
+  let moveY = 0;
+  for (const e of events) {
+    moveX += e.movementX;
+    moveY += e.movementY;
+  }
   euler.setFromQuaternion(camera.quaternion);
-  euler.y -= event.movementX * lookSensitivity;
-  euler.x -= event.movementY * lookSensitivity;
+  euler.y -= moveX * lookSensitivity;
+  euler.x -= moveY * lookSensitivity;
   euler.x = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, euler.x));
   camera.quaternion.setFromEuler(euler);
 }, { passive: true });
@@ -1075,7 +1082,7 @@ function endGame(quitEarly = false) {
     Avg TTK: <span class="highlight">${avgTTK} ms</span>
     ${isSmoothTrackingMode() ? `<br>Best Track: <span class="highlight">${bestTrack} ms</span>` : ''}
   `;
-  
+
   resultStats.style.display = 'block';
   menuEl.style.display = 'flex';
   uiEl.style.display = 'none';
@@ -1138,8 +1145,7 @@ function animate() {
 
   if (isPlaying && !isPaused) {
     const time = frameTime;
-    const elapsed = (time - startTime - totalPausedDuration) / 1000;
-    timeTakenEl.innerText = Math.max(0, elapsed).toFixed(1);
+    updateTimeUi(frameTime);
 
     targets.forEach(t => {
       if (t.userData.isMoving) {
